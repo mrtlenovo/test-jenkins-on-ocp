@@ -7,11 +7,25 @@ pipeline {
     }
 
     stages {
+        stage('Download oc CLI') {
+            steps {
+                sh '''
+                echo "Downloading oc CLI into /tmp..."
+                cd /tmp
+                curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
+                tar -xvzf openshift-client-linux.tar.gz oc
+                chmod +x oc
+                ./oc version
+                '''
+            }
+        }
+
         stage('Login to OpenShift') {
             steps {
                 sh '''
-                oc login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
-                oc project cicd-pipelines
+                cd /tmp
+                ./oc login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
+                ./oc project cicd-pipelines
                 '''
             }
         }
@@ -19,8 +33,9 @@ pipeline {
         stage('Check Access') {
             steps {
                 sh '''
-                echo "Logged in as: $(oc whoami)"
-                oc get pods -n cicd-pipelines
+                cd /tmp
+                echo "Logged in as: $(./oc whoami)"
+                ./oc get pods -n cicd-pipelines
                 '''
             }
         }
@@ -28,10 +43,11 @@ pipeline {
         stage('Build and Deploy') {
             steps {
                 sh '''
-                # Assuming deployment.yaml exists in repo
-                oc new-build --binary --name=my-app -l app=my-app || true
-                oc start-build my-app --from-dir=. --follow
-                oc apply -f deployment.yaml
+                cd /tmp
+                # Assuming deployment.yaml exists in repo root
+                ./oc new-build --binary --name=my-app -l app=my-app || true
+                ./oc start-build my-app --from-dir=${WORKSPACE} --follow
+                ./oc apply -f ${WORKSPACE}/deployment.yaml
                 '''
             }
         }
