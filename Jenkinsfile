@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         OCP_SERVER = 'https://api.ocptest.demo.local:6443'
-        OCP_TOKEN = credentials('ocp-external-token') // Defined in Jenkins Credentials
+        OCP_TOKEN = credentials('ocp-external-token')
+        KUBECONFIG = '/tmp/kubeconfig'  // Override default kubeconfig location
     }
 
     stages {
@@ -24,6 +25,7 @@ pipeline {
             steps {
                 sh '''
                 cd /tmp
+                export KUBECONFIG=/tmp/kubeconfig
                 ./oc login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
                 ./oc project cicd-pipelines
                 '''
@@ -34,6 +36,7 @@ pipeline {
             steps {
                 sh '''
                 cd /tmp
+                export KUBECONFIG=/tmp/kubeconfig
                 echo "Logged in as: $(./oc whoami)"
                 ./oc get pods -n cicd-pipelines
                 '''
@@ -44,7 +47,7 @@ pipeline {
             steps {
                 sh '''
                 cd /tmp
-                # Assuming deployment.yaml exists in repo root
+                export KUBECONFIG=/tmp/kubeconfig
                 ./oc new-build --binary --name=my-app -l app=my-app || true
                 ./oc start-build my-app --from-dir=${WORKSPACE} --follow
                 ./oc apply -f ${WORKSPACE}/deployment.yaml
