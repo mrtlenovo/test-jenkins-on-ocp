@@ -1,0 +1,49 @@
+name: OpenShift CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      OCP_SERVER: ${{ secrets.OCP_SERVER }}
+      OCP_TOKEN: ${{ secrets.OCP_TOKEN }}
+      KUBECONFIG: /tmp/kubeconfig
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download oc CLI
+        run: |
+          echo "Downloading oc CLI..."
+          cd /tmp
+          curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
+          tar -xvzf openshift-client-linux.tar.gz oc
+          chmod +x oc
+          ./oc version
+
+      - name: Login to OpenShift
+        run: |
+          cd /tmp
+          export KUBECONFIG=/tmp/kubeconfig
+          ./oc login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
+          ./oc project cicd-pipelines
+
+      - name: Check Access
+        run: |
+          cd /tmp
+          export KUBECONFIG=/tmp/kubeconfig
+          echo "Logged in as: $(./oc whoami)"
+          ./oc get pods -n cicd-pipelines
+
+      - name: Build and Deploy
+        run: |
+          cd /tmp
+          export KUBECONFIG=/tmp/kubeconfig
+          ./oc new-build --binary --name=my-app -l app=my-app || true
+          ./oc start-build my-app --from-dir=$GITHUB_WORKSPACE --follow
+          ./oc apply -f $GITHUB_WORKSPACE/deployment.yaml
