@@ -29,21 +29,18 @@ jobs:
       - name: Login to OpenShift
         run: |
           cd /tmp
-          export KUBECONFIG=/tmp/kubeconfig
-          ./oc login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
-          ./oc project cicd-pipelines
+          ./oc --kubeconfig=/tmp/kubeconfig login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
+          ./oc --kubeconfig=/tmp/kubeconfig project cicd-pipelines
 
       - name: Check Access
         run: |
           cd /tmp
-          export KUBECONFIG=/tmp/kubeconfig
-          echo "Logged in as: $(./oc whoami)"
-          ./oc get pods -n cicd-pipelines
+          echo "Logged in as: $(./oc --kubeconfig=/tmp/kubeconfig whoami)"
+          ./oc --kubeconfig=/tmp/kubeconfig get pods -n cicd-pipelines
 
       - name: Build and Deploy
         run: |
           cd /tmp
-          export KUBECONFIG=/tmp/kubeconfig
-          ./oc new-build --binary --name=my-app -l app=my-app || true
-          ./oc start-build my-app --from-dir=$GITHUB_WORKSPACE --follow
-          ./oc apply -f $GITHUB_WORKSPACE/deployment.yaml
+          ./oc --kubeconfig=/tmp/kubeconfig new-build --binary --name=my-app -l app=my-app || true
+          ./oc --kubeconfig=/tmp/kubeconfig start-build my-app --from-dir=$GITHUB_WORKSPACE --follow
+          ./oc --kubeconfig=/tmp/kubeconfig apply -f $GITHUB_WORKSPACE/deployment.yaml
