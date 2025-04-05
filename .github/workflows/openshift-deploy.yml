@@ -9,8 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      OCP_SERVER: ${{ secrets.OCP_SERVER }}
-      OCP_TOKEN: ${{ secrets.OCP_TOKEN }}
+      OPENSHIFT_SERVERR: ${{ secrets.OPENSHIFT_SERVER }}
+      OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
       KUBECONFIG: /tmp/kubeconfig
 
     steps:
