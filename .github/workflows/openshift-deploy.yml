@@ -1,47 +1,26 @@
-name: OpenShift CI/CD
+name: Deploy to OpenShift
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]  # or whichever branch you want to deploy from
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-
-    env:
-      OPENSHIFT_SERVERR: ${{ secrets.OPENSHIFT_SERVER }}
-      OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
-      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
-      KUBECONFIG: /tmp/kubeconfig
+  deploy:
+    runs-on: self-hosted  # uses your self-hosted runner in OCP
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download oc CLI
-        run: |
-          echo "Downloading oc CLI..."
-          cd /tmp
-          curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
-          tar -xvzf openshift-client-linux.tar.gz oc
-          chmod +x oc
-          ./oc version
+        uses: actions/checkout@v3
 
       - name: Login to OpenShift
         run: |
-          cd /tmp
-          ./oc --kubeconfig=/tmp/kubeconfig login $OCP_SERVER --token=$OCP_TOKEN --insecure-skip-tls-verify
-          ./oc --kubeconfig=/tmp/kubeconfig project cicd-pipelines
+          oc login "$OPENSHIFT_SERVER" --token="$OPENSHIFT_TOKEN" --insecure-skip-tls-verify
+          oc project "$OPENSHIFT_NAMESPACE"
 
-      - name: Check Access
+      - name: Deploy to OpenShift
         run: |
-          cd /tmp
-          echo "Logged in as: $(./oc --kubeconfig=/tmp/kubeconfig whoami)"
-          ./oc --kubeconfig=/tmp/kubeconfig get pods -n cicd-pipelines
+          # Example: Apply all Kubernetes resources in the 'openshift' folder
+          oc apply -f openshift/
 
-      - name: Build and Deploy
-        run: |
-          cd /tmp
-          ./oc --kubeconfig=/tmp/kubeconfig new-build --binary --name=my-app -l app=my-app || true
-          ./oc --kubeconfig=/tmp/kubeconfig start-build my-app --from-dir=$GITHUB_WORKSPACE --follow
-          ./oc --kubeconfig=/tmp/kubeconfig apply -f $GITHUB_WORKSPACE/deployment.yaml
+          # Or, if you want to restart a specific deployment
+          # oc rollout restart deployment/<your-app-name>
